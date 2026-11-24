@@ -261,21 +261,26 @@ export default function Cart() {
             {items.length > 0 && (
               <div className="p-4 sm:p-5 bg-[#0B101E] border-t border-slate-800/70 shrink-0 max-h-[65dvh] overflow-y-auto custom-scrollbar">
                 {/* CÁLCULO DE FRETE INTEGRADO */}
-                <div className="pb-3.5 mb-3.5 border-b border-slate-800/60">
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                      <MapPin className="w-3 h-3 text-amber-500" /> Frete
-                    </label>
-                    {!shippingOptions && (
-                      <a
-                        href="http://www.buscacep.correios.com.br/sistemas/buscacep/"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[10px] text-slate-500 hover:text-amber-500 underline transition-colors"
-                      >
-                        Não sei meu CEP
-                      </a>
-                    )}
+<div className="pb-3.5 mb-3.5 border-b border-slate-800/60">
+                  <div className="mb-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                        <MapPin className="w-3 h-3 text-amber-500" /> Simule seu frete
+                      </label>
+                      {!shippingOptions && (
+                        <a
+                          href="http://www.buscacep.correios.com.br/sistemas/buscacep/"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[10px] text-slate-500 hover:text-amber-500 underline transition-colors"
+                        >
+                          Não sei meu CEP
+                        </a>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-slate-500 mt-0.5">
+                      (Seu frete será confirmado na página de checkout)
+                    </p>
                   </div>
 
                   <div className="flex gap-2">

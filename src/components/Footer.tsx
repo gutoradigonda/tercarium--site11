@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
@@ -13,7 +13,7 @@ const montserrat = Montserrat({
   weight: ['400', '600', '700', '900'],
 });
 
-export const Footer: React.FC = () => {
+const FooterContent: React.FC = () => {
   const pathname = usePathname();
 
   // Faixinha minimalista exclusiva para o Checkout (sem links de distração)
@@ -204,5 +204,13 @@ export const Footer: React.FC = () => {
 
       </div>
     </footer>
+  );
+};
+
+export const Footer: React.FC = () => {
+  return (
+    <Suspense fallback={null}>
+      <FooterContent />
+    </Suspense>
   );
 };
