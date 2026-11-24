@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
-import { ShoppingBag, X, Trash2, Plus, Minus, MapPin, Truck } from 'lucide-react';
+import { ShoppingBag, X, Trash2, Plus, Minus } from 'lucide-react';
 import { useCartStore } from '@/src/store/cartStore';
 import { Montserrat } from 'next/font/google';
 
@@ -12,24 +12,9 @@ const montserrat = Montserrat({
   weight: ['400', '500', '600', '700', '900'],
 });
 
-interface ShippingOption {
-  id: string;
-  name: string;
-  price: number;
-  days: number;
-}
-
-const CART_SHIPPING_STORAGE_KEY = 'tercarium_cart_shipping';
-
 export default function Cart() {
   const { items, removeItem, updateQuantity, isOpen, openCart, closeCart } = useCartStore();
   const [mounted, setMounted] = useState(false);
-
-  // Estados do Motor de Frete
-  const [cep, setCep] = useState('');
-  const [isCalculating, setIsCalculating] = useState(false);
-  const [shippingOptions, setShippingOptions] = useState<ShippingOption[] | null>(null);
-  const [selectedOption, setSelectedOption] = useState<ShippingOption | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -79,69 +64,12 @@ export default function Cart() {
     return ['Terço', linhaFormatada, modeloFormatado].filter(Boolean).join(' ');
   };
 
-  const persistCartShipping = (rawCep: string, option: ShippingOption) => {
-    try {
-      sessionStorage.setItem(
-        CART_SHIPPING_STORAGE_KEY,
-        JSON.stringify({
-          cep: rawCep.replace(/\D/g, ''),
-          methodId: option.id,
-          price: option.price,
-        }),
-      );
-    } catch {
-      // Ignora caso o navegador bloqueie sessionStorage
-    }
-  };
-
-  const handleSelectOption = (option: ShippingOption) => {
-    setSelectedOption(option);
-    persistCartShipping(cep, option);
-  };
-
-  // Máscara para o CEP (00000-000)
-  const handleCepChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let value = e.target.value.replace(/\D/g, '').slice(0, 8);
-    if (value.length > 5) {
-      value = value.replace(/^(\d{5})(\d)/, '$1-$2');
-    }
-    setCep(value);
-  };
-
-  // Simulação do Cálculo de Frete (mesmos IDs usados no Checkout)
-  const handleCalculateShipping = () => {
-    const cleanCep = cep.replace(/\D/g, '');
-    if (cleanCep.length !== 8) return;
-
-    setIsCalculating(true);
-    setShippingOptions(null);
-    setSelectedOption(null);
-
-    setTimeout(() => {
-      const options: ShippingOption[] = [
-        { id: 'J&T Express', name: 'J&T Express', price: 14.9, days: 4 },
-        { id: 'Loggi', name: 'Loggi Express', price: 16.5, days: 4 },
-        { id: 'Correios SEDEX', name: 'Correios SEDEX', price: 21.9, days: 3 },
-      ].sort((a, b) => a.price - b.price);
-
-      setShippingOptions(options);
-      if (options[0]) {
-        setSelectedOption(options[0]);
-        persistCartShipping(cleanCep, options[0]);
-      }
-      setIsCalculating(false);
-    }, 600);
-  };
-
   const totalItems = items.reduce((acc, item) => acc + item.quantity, 0);
   const subtotal = items.reduce(
     (acc, item) => acc + (item.basePrice + (item.extraPrice || 0)) * item.quantity,
     0,
   );
-
-  const frete = selectedOption ? selectedOption.price : 0;
-  const total = subtotal + frete;
-  const totalPix = subtotal * 0.95 + frete;
+  const totalPix = subtotal * 0.95;
 
   const cartDrawer = mounted
     ? createPortal(
@@ -174,7 +102,7 @@ export default function Cart() {
               </button>
             </div>
 
-            {/* BLOCO 1: APENAS OS ITENS ESCOLHIDOS (ROLÁVEL) */}
+            {/* BLOCO 1: ITENS ESCOLHIDOS (ROLÁVEL) */}
             <div className="flex-1 overflow-y-auto custom-scrollbar p-5">
               {items.length === 0 ? (
                 <div className="text-center py-20 space-y-4">
@@ -257,97 +185,9 @@ export default function Cart() {
               )}
             </div>
 
-            {/* BLOCO 2: FRETE + SUBTOTAL + TOTAL + FINALIZAR (TUDO NO MESMO CARD FIXO) */}
+            {/* BLOCO 2: RESUMO + FINALIZAR */}
             {items.length > 0 && (
-              <div className="p-4 sm:p-5 bg-[#0B101E] border-t border-slate-800/70 shrink-0 max-h-[65dvh] overflow-y-auto custom-scrollbar">
-                {/* CÁLCULO DE FRETE INTEGRADO */}
-<div className="pb-3.5 mb-3.5 border-b border-slate-800/60">
-                  <div className="mb-2">
-                    <div className="flex items-center justify-between">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                        <MapPin className="w-3 h-3 text-amber-500" /> Simule seu frete
-                      </label>
-                      {!shippingOptions && (
-                        <a
-                          href="http://www.buscacep.correios.com.br/sistemas/buscacep/"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-[10px] text-slate-500 hover:text-amber-500 underline transition-colors"
-                        >
-                          Não sei meu CEP
-                        </a>
-                      )}
-                    </div>
-                    <p className="text-[10px] text-slate-500 mt-0.5">
-                      (Seu frete será confirmado na página de checkout)
-                    </p>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="00000-000"
-                      value={cep}
-                      onChange={handleCepChange}
-                      maxLength={9}
-                      className="flex-1 bg-[#050810] border border-slate-800/80 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500 transition-colors text-center font-medium tracking-widest"
-                    />
-                    <button
-                      onClick={handleCalculateShipping}
-                      disabled={isCalculating || cep.length < 9}
-                      className="bg-slate-800 hover:bg-slate-700 disabled:bg-slate-800/50 disabled:text-slate-500 text-amber-400 text-[11px] font-bold px-4 rounded-lg transition-colors cursor-pointer uppercase tracking-wider min-w-[92px] flex justify-center items-center"
-                    >
-                      {isCalculating ? (
-                        <span className="w-3.5 h-3.5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        'Calcular'
-                      )}
-                    </button>
-                  </div>
-
-                  {/* OPÇÕES EM LINHA ÚNICA COMPACTA */}
-                  {shippingOptions && (
-                    <div className="mt-2.5 space-y-1.5">
-                      <p className="text-[10px] text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                        <Truck className="w-3 h-3 text-amber-500" /> Escolha a entrega:
-                      </p>
-                      {shippingOptions.map(option => {
-                        const isSelected = selectedOption?.id === option.id;
-                        return (
-                          <label
-                            key={option.id}
-                            className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg border cursor-pointer transition-all ${
-                              isSelected
-                                ? 'border-amber-500 bg-amber-500/10'
-                                : 'border-slate-800/80 bg-[#050810] hover:border-slate-700'
-                            }`}
-                          >
-                            <div className="flex items-center gap-2 min-w-0">
-                              <input
-                                type="radio"
-                                name="shipping_method"
-                                className="accent-amber-500 w-3.5 h-3.5 shrink-0"
-                                checked={isSelected}
-                                onChange={() => handleSelectOption(option)}
-                              />
-                              <span className="text-[11px] font-bold text-slate-200 truncate">
-                                {option.name}
-                              </span>
-                              <span className="text-[10px] text-slate-500 shrink-0">
-                                • {option.days}d úteis
-                              </span>
-                            </div>
-                            <span className="text-[11px] font-black text-amber-400 shrink-0 ml-2">
-                              R$ {option.price.toFixed(2).replace('.', ',')}
-                            </span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-
-                {/* RESUMO DE VALORES */}
+              <div className="p-4 sm:p-5 bg-[#0B101E] border-t border-slate-800/70 shrink-0">
                 <div className="space-y-1.5 mb-4">
                   <div className="flex justify-between text-xs">
                     <span className="text-slate-400">Subtotal:</span>
@@ -356,21 +196,13 @@ export default function Cart() {
                     </span>
                   </div>
                   <div className="flex justify-between text-xs">
-                    <span className="text-slate-400">
-                      Frete {selectedOption ? `(${selectedOption.name})` : ''}:
-                    </span>
-                    {frete > 0 ? (
-                      <span className="text-slate-200 font-medium">
-                        + R$ {frete.toFixed(2).replace('.', ',')}
-                      </span>
-                    ) : (
-                      <span className="text-slate-500 italic">Calcule para ver</span>
-                    )}
+                    <span className="text-slate-400">Frete:</span>
+                    <span className="text-slate-500 italic">Calculado no checkout</span>
                   </div>
                   <div className="flex justify-between text-sm pt-2 border-t border-slate-800/40 mt-1.5">
                     <span className="text-slate-300 font-bold uppercase tracking-wider">Total:</span>
                     <span className="text-amber-500 font-black text-lg">
-                      R$ {total.toFixed(2).replace('.', ',')}
+                      R$ {subtotal.toFixed(2).replace('.', ',')}
                     </span>
                   </div>
                   <p className="text-right text-[10px] text-emerald-400 font-medium">
